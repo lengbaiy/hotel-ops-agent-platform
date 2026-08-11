@@ -2,7 +2,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, develop, test, production]
 jobs:
   backend:
     runs-on: ubuntu-latest

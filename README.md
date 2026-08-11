@@ -83,3 +83,5 @@ docker/      本地容器配置
 需求、模块、API、数据对象和验收点的对应关系见 [docs/PRD_TRACEABILITY.md](docs/PRD_TRACEABILITY.md)。
 
 完整的总体架构、Agent 闭环、三端策略、工程分层和研发流程见 [docs/PROJECT_FRAMEWORK.md](docs/PROJECT_FRAMEWORK.md)。
+
+企业分支、测试与发布流程见 [docs/BRANCHING_STRATEGY.md](docs/BRANCHING_STRATEGY.md)。

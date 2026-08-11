@@ -27,6 +27,7 @@ git push -u origin HEAD
 | 前端静态检查 | ESLint | Vue、TypeScript 或 JavaScript 规则错误 |
 | 前端格式 | Prettier | 文件格式不符合规则 |
 | 前端构建 | Vue TSC + Vite | 类型错误或构建失败 |
+| API 契约 | FastAPI OpenAPI | OpenAPI 生成失败或路由契约缺失 |
 
 ## GitHub 必须配置
 

@@ -1,41 +1,24 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 
-from app.domain import OpsTask, TaskCreate
-from app.services import TaskService
+from app.api.v2 import api_v2_router
+from app.core import settings
 
-app = FastAPI(title="Hotel Operations Intelligence Agent API", version="0.1.0")
-service = TaskService()
+app = FastAPI(
+    title=settings.app_name,
+    version="0.3.0",
+    description=(
+        "酒店智能运营 Agent 平台 API。所有写操作遵循策略可解释、执行可审批、"
+        "结果可归因、失败可恢复的治理原则。"
+    ),
+    openapi_tags=[
+        {"name": "经营驾驶舱", "description": "经营概览、指标和告警。"},
+        {"name": "经营任务", "description": "任务状态流转、审批和受控执行。"},
+        {"name": "platform", "description": "平台能力和模块契约。"},
+    ],
+)
+app.include_router(api_v2_router)
 
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok"}
-
-
-@app.post("/api/v2/ops/tasks", response_model=OpsTask, status_code=201)
-def create_task(payload: TaskCreate) -> OpsTask:
-    return service.create(OpsTask(request=payload))
-
-
-@app.get("/api/v2/ops/tasks/{task_id}", response_model=OpsTask)
-def get_task(task_id: str) -> OpsTask:
-    try:
-        return service.get(task_id)
-    except KeyError as error:
-        raise HTTPException(status_code=404, detail="task not found") from error
-
-
-@app.post("/api/v2/ops/tasks/{task_id}/approve", response_model=OpsTask)
-def approve_task(task_id: str) -> OpsTask:
-    try:
-        return service.approve(task_id)
-    except (KeyError, ValueError) as error:
-        raise HTTPException(status_code=409, detail=str(error)) from error
-
-
-@app.post("/api/v2/ops/tasks/{task_id}/execute", response_model=OpsTask)
-def execute_task(task_id: str) -> OpsTask:
-    try:
-        return service.execute(task_id)
-    except (KeyError, ValueError) as error:
-        raise HTTPException(status_code=409, detail=str(error)) from error
+    return {"status": "ok", "environment": settings.environment}

@@ -1,0 +1,13 @@
+{
+  "pages": [
+    {
+      "path": "pages/home/index",
+      "style": { "navigationBarTitleText": "酒店运营" }
+    },
+    {
+      "path": "pages/tasks/index",
+      "style": { "navigationBarTitleText": "经营任务" }
+    }
+  ],
+  "globalStyle": { "navigationBarTextStyle": "black", "navigationBarBackgroundColor": "#ffffff", "backgroundColor": "#f6f8fc" }
+}

@@ -70,3 +70,16 @@ data/        脱敏样例和导入说明
 docker/      本地容器配置
 .github/     PR 模板与 CI
 ```
+
+## 工程分层
+
+- `backend/app/api`：HTTP 契约、鉴权入口与接口版本。
+- `backend/app/modules`：经营任务、市场、预测、收益、渠道、内容、口碑会员、效率、策略治理、知识衡量等业务域。
+- `backend/app/agents` 与 `backend/app/graph`：Agent 状态、编排和 Checkpoint。
+- `backend/app/policy`、`backend/app/adapters`、`backend/app/tools`：审批治理、受控连接器和 Tool 契约。
+- `backend/app/repositories` 与 `backend/app/db`：仓储抽象、PostgreSQL 模型和迁移。
+- `frontend/src/modules`：与后端业务域一一对应的视图、状态、类型与 API 客户端。
+
+需求、模块、API、数据对象和验收点的对应关系见 [docs/PRD_TRACEABILITY.md](docs/PRD_TRACEABILITY.md)。
+
+完整的总体架构、Agent 闭环、三端策略、工程分层和研发流程见 [docs/PROJECT_FRAMEWORK.md](docs/PROJECT_FRAMEWORK.md)。

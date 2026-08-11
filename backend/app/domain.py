@@ -15,11 +15,21 @@ class TaskState(StrEnum):
     REJECTED = "REJECTED"
 
 
+class TaskPriority(StrEnum):
+    CRITICAL = "CRITICAL"
+    HIGH = "HIGH"
+    MEDIUM = "MEDIUM"
+    LOW = "LOW"
+
+
 class TaskCreate(BaseModel):
     tenant_id: str = Field(min_length=1)
     property_id: str = Field(min_length=1)
     objective: str = Field(min_length=5, max_length=500)
     task_type: str = "revenue_recommendation"
+    owner_id: str | None = None
+    priority: TaskPriority = TaskPriority.MEDIUM
+    data_cutoff: datetime | None = None
 
 
 class Recommendation(BaseModel):
@@ -35,10 +45,16 @@ class OpsTask(BaseModel):
     id: UUID = Field(default_factory=uuid4)
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     state: TaskState = TaskState.PENDING
+    trace_id: str = Field(default_factory=lambda: str(uuid4()))
     request: TaskCreate
     recommendation: Recommendation | None = None
     approval_hash: str | None = None
     events: list[str] = Field(default_factory=list)
+
+
+class OpsTaskList(BaseModel):
+    items: list[OpsTask]
+    total: int
 
 
 def recommendation_hash(recommendation: Recommendation) -> str:

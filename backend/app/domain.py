@@ -22,11 +22,22 @@ class TaskPriority(StrEnum):
     LOW = "LOW"
 
 
+class TaskType(StrEnum):
+    REVENUE_RECOMMENDATION = "revenue_recommendation"
+    MARKET_INTELLIGENCE = "market_intelligence"
+    DEMAND_FORECAST = "demand_forecast"
+    CHANNEL_RECOMMENDATION = "channel_recommendation"
+    CONTENT_PLAN = "content_plan"
+    REPUTATION_RESPONSE = "reputation_response"
+    MEMBERSHIP_STRATEGY = "membership_strategy"
+    EFFICIENCY_RECOMMENDATION = "efficiency_recommendation"
+
+
 class TaskCreate(BaseModel):
     tenant_id: str = Field(min_length=1)
     property_id: str = Field(min_length=1)
     objective: str = Field(min_length=5, max_length=500)
-    task_type: str = "revenue_recommendation"
+    task_type: TaskType = TaskType.REVENUE_RECOMMENDATION
     owner_id: str | None = None
     priority: TaskPriority = TaskPriority.MEDIUM
     data_cutoff: datetime | None = None

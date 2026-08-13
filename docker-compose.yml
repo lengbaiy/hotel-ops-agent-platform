@@ -7,9 +7,19 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-for-local-only}
     ports: ["5432:5432"]
     volumes: [postgres_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hotel_ops} -d ${POSTGRES_DB:-hotel_ops}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
   redis:
     image: redis:7-alpine
     ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
   qdrant:
     image: qdrant/qdrant:v1.13.2
     ports: ["6333:6333"]
@@ -32,10 +42,28 @@ services:
       MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio:9000}
     ports: ["8000:8000"]
     volumes: [./backend:/app]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+      minio:
+        condition: service_started
   web:
     build: ./frontend
     ports: ["5173:5173"]
-    depends_on: [api]
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
   agent-worker:
     build: ./backend
     command: python -m app.worker
@@ -43,7 +71,12 @@ services:
       APP_ENV: docker
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://hotel_ops:change-me-for-local-only@db:5432/hotel_ops}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
-    depends_on: [db, redis]
+    profiles: [background]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
   scheduler:
     build: ./backend
     command: python -m app.scheduler
@@ -51,7 +84,12 @@ services:
       APP_ENV: docker
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://hotel_ops:change-me-for-local-only@db:5432/hotel_ops}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
-    depends_on: [db, redis]
+    profiles: [background]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 volumes:
   postgres_data:
   qdrant_data:

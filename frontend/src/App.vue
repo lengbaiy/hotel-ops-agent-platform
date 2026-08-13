@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 
 import { navigationItems } from "./config/navigation";
+import LoginPage from "./components/LoginPage.vue";
 import { useOperationsWorkspace } from "./composables/useOperationsWorkspace";
 import ModuleWorkspace from "./modules/ModuleWorkspace.vue";
+import { useAuth } from "./stores/auth";
 
 const selectedModuleId = ref(location.hash.replace("#", "") || "dashboard");
 const currentModule = computed(
@@ -45,6 +47,11 @@ const {
   loadWorkspace,
   createTask,
 } = useOperationsWorkspace();
+const { session, isAuthenticated, signOut } = useAuth();
+
+watch(isAuthenticated, (authenticated) => {
+  if (authenticated) loadWorkspace(selectedPropertyId.value);
+});
 
 function selectModule(moduleId: string) {
   selectedModuleId.value = moduleId;
@@ -70,10 +77,15 @@ function togglePanel(panel: "search" | "notifications" | "user") {
 function stateLabel(state: string) {
   return { WAITING_APPROVAL: "待审批", APPROVED: "已批准", EXECUTED: "已执行" }[state] ?? state;
 }
+
+async function logout() {
+  await signOut();
+}
 </script>
 
 <template>
-  <div class="shell">
+  <LoginPage v-if="!isAuthenticated" />
+  <div v-else class="shell">
     <aside class="sidebar">
       <div class="brand"><span class="brand-mark">H</span><span>Hotel Ops</span></div>
       <label class="property-switcher">
@@ -101,7 +113,10 @@ function stateLabel(state: string) {
         </button>
       </nav>
       <div class="sidebar-footer">
-        <span class="avatar">OR</span><span><b>运营负责人</b><small>收益与运营</small></span
+        <span class="avatar">{{ session?.user.display_name.slice(0, 2) }}</span
+        ><span
+          ><b>{{ session?.user.display_name }}</b
+          ><small>{{ session?.user.roles.join(" · ") }}</small></span
         ><span>⋯</span>
       </div>
     </aside>
@@ -152,11 +167,12 @@ function stateLabel(state: string) {
           <span class="divider"></span>
           <div class="action-anchor">
             <button class="user-button" @click="togglePanel('user')">
-              运营负责人 <span>⌄</span>
+              {{ session?.user.display_name }} <span>⌄</span>
             </button>
             <div v-if="showUserMenu" class="action-popover user-popover">
-              <b>运营负责人</b><small>收益与运营</small><button>个人设置</button
-              ><button>退出登录</button>
+              <b>{{ session?.user.display_name }}</b
+              ><small>{{ session?.user.username }}</small
+              ><button>个人设置</button><button @click="logout">退出登录</button>
             </div>
           </div>
         </div>

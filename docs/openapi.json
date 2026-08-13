@@ -511,6 +511,11 @@
         ],
         "summary": "��ѯ��Ӫ��ʻ�ո���",
         "operationId": "get_overview_api_v2_dashboard_overview_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "property_id",
@@ -555,6 +560,11 @@
         ],
         "summary": "������Ӫ�������������",
         "operationId": "create_task_api_v2_ops_tasks_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -594,6 +604,11 @@
         ],
         "summary": "��ѯ��Ӫ�����б�",
         "operationId": "list_tasks_api_v2_ops_tasks_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "limit",
@@ -656,6 +671,11 @@
         ],
         "summary": "��ѯ����״̬�ͽ��",
         "operationId": "get_task_api_v2_ops_tasks__task_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "task_id",
@@ -698,6 +718,11 @@
         ],
         "summary": "��ѯ�����¼���",
         "operationId": "get_task_events_api_v2_ops_tasks__task_id__events_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "task_id",
@@ -744,6 +769,11 @@
         ],
         "summary": "��׼���Բ�������",
         "operationId": "approve_task_api_v2_ops_tasks__task_id__approve_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "task_id",
@@ -786,6 +816,11 @@
         ],
         "summary": "ִ������׼���ܿض���",
         "operationId": "execute_task_api_v2_ops_tasks__task_id__execute_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "task_id",
@@ -1127,8 +1162,7 @@
             "title": "Objective"
           },
           "task_type": {
-            "type": "string",
-            "title": "Task Type",
+            "$ref": "#/components/schemas/TaskType",
             "default": "revenue_recommendation"
           },
           "owner_id": {
@@ -1189,6 +1223,20 @@
         ],
         "title": "TaskState"
       },
+      "TaskType": {
+        "type": "string",
+        "enum": [
+          "revenue_recommendation",
+          "market_intelligence",
+          "demand_forecast",
+          "channel_recommendation",
+          "content_plan",
+          "reputation_response",
+          "membership_strategy",
+          "efficiency_recommendation"
+        ],
+        "title": "TaskType"
+      },
       "ValidationError": {
         "properties": {
           "loc": {
@@ -1228,6 +1276,12 @@
           "type"
         ],
         "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
       }
     }
   },

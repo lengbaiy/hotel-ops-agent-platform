@@ -22,6 +22,10 @@ class Settings:
     )
     jwt_expire_minutes: int = int(getenv("JWT_EXPIRE_MINUTES", "30"))
     captcha_expire_seconds: int = int(getenv("CAPTCHA_EXPIRE_SECONDS", "120"))
+    captcha_provider: str = getenv("CAPTCHA_PROVIDER", "local_puzzle")
+    tencent_captcha_app_id: str = getenv("TENCENT_CAPTCHA_APP_ID", "")
+    tencent_secret_id: str = getenv("TENCENT_SECRET_ID", "")
+    tencent_secret_key: str = getenv("TENCENT_SECRET_KEY", "")
 
 
 settings = Settings()

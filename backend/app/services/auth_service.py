@@ -2,6 +2,7 @@ from datetime import UTC, datetime, timedelta
 from hashlib import pbkdf2_hmac
 from hmac import compare_digest
 from secrets import randbelow, token_urlsafe
+from typing import Any
 
 import jwt
 
@@ -34,6 +35,22 @@ class AuthService:
         self.captchas: dict[str, tuple[int, datetime]] = {}
 
     def create_captcha(self) -> dict[str, int | str]:
+        if settings.captcha_provider == "tencent":
+            if not settings.tencent_captcha_app_id:
+                raise ValueError("腾讯云验证码未配置 TENCENT_CAPTCHA_APP_ID")
+            captcha_id = token_urlsafe(24)
+            self.captchas[captcha_id] = (
+                0,
+                datetime.now(UTC) + timedelta(seconds=settings.captcha_expire_seconds),
+            )
+            return {
+                "provider": "tencent",
+                "captcha_id": captcha_id,
+                "app_id": settings.tencent_captcha_app_id,
+                "expires_in": settings.captcha_expire_seconds,
+            }
+        if settings.captcha_provider != "local_puzzle":
+            raise ValueError("CAPTCHA_PROVIDER must be local_puzzle or tencent")
         captcha_id = token_urlsafe(24)
         target_position = 68 + randbelow(210)
         self.captchas[captcha_id] = (
@@ -41,6 +58,7 @@ class AuthService:
             datetime.now(UTC) + timedelta(seconds=settings.captcha_expire_seconds),
         )
         return {
+            "provider": "local_puzzle",
             "captcha_id": captcha_id,
             "track_length": 100,
             "canvas_width": 350,
@@ -49,8 +67,8 @@ class AuthService:
             "expires_in": settings.captcha_expire_seconds,
         }
 
-    def login(self, payload: dict[str, str | int]) -> dict[str, object]:
-        self._validate_captcha(str(payload["captcha_id"]), int(payload["slider_position"]))
+    def login(self, payload: dict[str, Any]) -> dict[str, object]:
+        self._validate_captcha(payload)
         username = str(payload["username"])
         user = self._users.get(username)
         if user is None or not self._verify_password(
@@ -86,15 +104,48 @@ class AuthService:
             }
         return self._profile(actor.subject, user)
 
-    def _validate_captcha(self, captcha_id: str, slider_position: int) -> None:
+    def _validate_captcha(self, payload: dict[str, Any]) -> None:
+        captcha_id = str(payload["captcha_id"])
         challenge = self.captchas.pop(captcha_id, None)
         if challenge is None:
             raise ValueError("滑块挑战不存在或已使用")
         target_position, expires_at = challenge
         if datetime.now(UTC) > expires_at:
             raise ValueError("滑块挑战已过期")
+        if settings.captcha_provider == "tencent":
+            self._validate_tencent_captcha(
+                str(payload.get("captcha_ticket") or ""), str(payload.get("captcha_randstr") or "")
+            )
+            return
+        slider_position = payload.get("slider_position")
+        if not isinstance(slider_position, int):
+            raise ValueError("缺少滑块验证位置")
         if abs(slider_position - target_position) > 4:
             raise ValueError("滑块验证失败")
+
+    @staticmethod
+    def _validate_tencent_captcha(ticket: str, randstr: str) -> None:
+        if not ticket or not randstr:
+            raise ValueError("缺少腾讯云验证码凭据")
+        if not settings.tencent_secret_id or not settings.tencent_secret_key:
+            raise ValueError("腾讯云验证码服务端密钥未配置")
+        try:
+            from tencentcloud.captcha.v20190722 import captcha_client, models
+            from tencentcloud.common import credential
+        except ImportError as error:
+            raise ValueError("腾讯云验证码 SDK 不可用") from error
+        client = captcha_client.CaptchaClient(
+            credential.Credential(settings.tencent_secret_id, settings.tencent_secret_key),
+            "ap-guangzhou",
+        )
+        request = models.DescribeCaptchaResultRequest()
+        request.CaptchaType = 9
+        request.Ticket = ticket
+        request.UserIp = "127.0.0.1"
+        request.Randstr = randstr
+        result = client.DescribeCaptchaResult(request).CaptchaCode
+        if result != 1:
+            raise ValueError("腾讯云验证码校验失败")
 
     def _verify_password(self, password: str, expected_hash: str) -> bool:
         password_hash = pbkdf2_hmac("sha256", password.encode(), self._salt, 310_000).hex()

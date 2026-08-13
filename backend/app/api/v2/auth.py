@@ -10,19 +10,23 @@ router = APIRouter(prefix="/auth", tags=["身份认证"])
 
 
 class CaptchaChallenge(BaseModel):
+    provider: str
     captcha_id: str
-    track_length: int
-    canvas_width: int
-    canvas_height: int
-    puzzle_offset: int
     expires_in: int
+    track_length: int | None = None
+    canvas_width: int | None = None
+    canvas_height: int | None = None
+    puzzle_offset: int | None = None
+    app_id: str | None = None
 
 
 class LoginRequest(BaseModel):
     username: str = Field(min_length=3, max_length=64)
     password: str = Field(min_length=8, max_length=128)
     captcha_id: str = Field(min_length=1)
-    slider_position: int = Field(ge=0, le=1000)
+    slider_position: int | None = Field(default=None, ge=0, le=1000)
+    captcha_ticket: str | None = Field(default=None, min_length=1)
+    captcha_randstr: str | None = Field(default=None, min_length=1)
 
 
 class UserProfile(BaseModel):
@@ -46,7 +50,12 @@ CurrentActor = Annotated[Actor, Depends(get_current_actor)]
 
 @router.post("/captcha", response_model=CaptchaChallenge, summary="创建登录滑块挑战")
 def create_captcha() -> CaptchaChallenge:
-    return CaptchaChallenge(**auth_service.create_captcha())
+    try:
+        return CaptchaChallenge(**auth_service.create_captcha())
+    except ValueError as error:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(error)
+        ) from error
 
 
 @router.post("/login", response_model=SessionResponse, summary="校验滑块并创建登录会话")

@@ -37,7 +37,13 @@ export function useAuth() {
     challenge.value = await requestCaptcha();
   }
 
-  async function signIn(username: string, password: string, sliderPosition: number) {
+  async function signIn(
+    username: string,
+    password: string,
+    sliderPosition?: number,
+    captchaTicket?: string,
+    captchaRandstr?: string,
+  ) {
     if (!challenge.value) await refreshCaptcha();
     authenticating.value = true;
     authError.value = "";
@@ -49,6 +55,8 @@ export function useAuth() {
         password,
         captcha_id: activeChallenge.captcha_id,
         slider_position: sliderPosition,
+        captcha_ticket: captchaTicket,
+        captcha_randstr: captchaRandstr,
       });
       sessionStorage.setItem(storageKey, JSON.stringify(session.value));
       challenge.value = null;

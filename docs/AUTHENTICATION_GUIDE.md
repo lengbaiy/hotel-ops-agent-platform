@@ -35,8 +35,8 @@
 ## 生产接入要求
 
 1. 将 `.env` 设置为 `AUTH_MODE=jwt`，并使用至少 32 字节的随机 `JWT_SECRET`。
-2. 将本地 `AuthService` 替换为企业 SSO/OIDC 身份提供方；服务端只接受验证后的签名令牌。
-3. 将滑块挑战替换为已采购的验证码服务，验证服务端签发的挑战令牌、行为轨迹、设备风险和有效期。
+2. 如使用腾讯云商业验证码，将 `CAPTCHA_PROVIDER=tencent`，并配置 `TENCENT_CAPTCHA_APP_ID`、`TENCENT_SECRET_ID` 与 `TENCENT_SECRET_KEY`。前端加载腾讯云官方 `TCaptcha.js`，服务端使用官方 SDK 校验 `ticket` 和 `randstr`。
+3. 将本地 `AuthService` 替换为企业 SSO/OIDC 身份提供方；服务端只接受验证后的签名令牌。
 4. 将挑战记录、登录失败次数、令牌撤销表存入 Redis/PostgreSQL；当前内存实现仅用于单进程本地演示。
 5. 生产 API 仅使用 HTTPS，配置可信 CORS 域名、审计登录事件、设置速率限制与账户锁定策略。
 

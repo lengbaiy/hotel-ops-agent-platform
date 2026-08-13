@@ -1,9 +1,11 @@
 export type CaptchaChallenge = {
+  provider: "local_puzzle" | "tencent";
   captcha_id: string;
-  track_length: number;
-  canvas_width: number;
-  canvas_height: number;
-  puzzle_offset: number;
+  track_length?: number;
+  canvas_width?: number;
+  canvas_height?: number;
+  puzzle_offset?: number;
+  app_id?: string;
   expires_in: number;
 };
 
@@ -42,7 +44,9 @@ export function login(payload: {
   username: string;
   password: string;
   captcha_id: string;
-  slider_position: number;
+  slider_position?: number;
+  captcha_ticket?: string;
+  captcha_randstr?: string;
 }) {
   return request<LoginSession>("/login", { method: "POST", body: JSON.stringify(payload) });
 }

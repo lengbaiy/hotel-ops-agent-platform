@@ -9,18 +9,60 @@ const { challenge, authError, authenticating, refreshCaptcha, signIn } = useAuth
 const username = ref("ops-admin");
 const password = ref("HotelOps@2026");
 const sliderPosition = ref<number | null>(null);
+const captchaTicket = ref("");
+const captchaRandstr = ref("");
 const captchaMessage = ref("请拖动拼图滑块完成验证");
 const block = ref<SlideVerifyInstance>();
 const isCaptchaReady = computed(() => Boolean(challenge.value));
+const isTencentCaptcha = computed(() => challenge.value?.provider === "tencent");
 
 onMounted(refreshCaptcha);
 
 async function submit() {
-  if (sliderPosition.value === null) {
+  if (sliderPosition.value === null && !captchaTicket.value) {
     captchaMessage.value = "请先完成拼图滑块验证";
     return;
   }
-  await signIn(username.value, password.value, sliderPosition.value).catch(() => undefined);
+  await signIn(
+    username.value,
+    password.value,
+    sliderPosition.value ?? undefined,
+    captchaTicket.value || undefined,
+    captchaRandstr.value || undefined,
+  ).catch(() => undefined);
+}
+
+async function openTencentCaptcha() {
+  if (!challenge.value?.app_id) return;
+  try {
+    captchaMessage.value = "正在打开腾讯云商业验证码…";
+    await loadTencentCaptchaScript();
+    const Captcha = window.TencentCaptcha;
+    if (!Captcha) throw new Error("腾讯云验证码脚本不可用");
+    const captcha = new Captcha(challenge.value.app_id, (result) => {
+      if (result.ret === 0) {
+        captchaTicket.value = result.ticket;
+        captchaRandstr.value = result.randstr;
+        captchaMessage.value = "腾讯云验证码验证通过";
+      } else {
+        captchaMessage.value = "验证已取消，请重新完成安全验证";
+      }
+    });
+    captcha.show();
+  } catch (error) {
+    captchaMessage.value = error instanceof Error ? error.message : "商业验证码加载失败";
+  }
+}
+
+function loadTencentCaptchaScript() {
+  if (window.TencentCaptcha) return Promise.resolve();
+  return new Promise<void>((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://ssl.captcha.qq.com/TCaptcha.js";
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("腾讯云验证码脚本加载失败"));
+    document.head.appendChild(script);
+  });
 }
 
 function onSuccess(detail: { timestamp: number; left: number }) {
@@ -41,6 +83,8 @@ function onAgain() {
 
 async function reloadCaptcha() {
   sliderPosition.value = null;
+  captchaTicket.value = "";
+  captchaRandstr.value = "";
   captchaMessage.value = "请拖动拼图滑块完成验证";
   await refreshCaptcha();
   block.value?.refresh();
@@ -86,8 +130,16 @@ async function reloadCaptcha() {
             <b>安全验证</b><button type="button" @click="reloadCaptcha">刷新</button>
           </div>
           <p>拖动滑块至缺口处，完成登录校验</p>
+          <button
+            v-if="isTencentCaptcha"
+            type="button"
+            class="commercial-captcha"
+            @click="openTencentCaptcha"
+          >
+            {{ captchaTicket ? "✓ 腾讯云验证码已通过" : "启动腾讯云滑块验证" }}
+          </button>
           <SlideVerify
-            v-if="isCaptchaReady"
+            v-if="isCaptchaReady && !isTencentCaptcha"
             ref="block"
             :w="challenge?.canvas_width"
             :h="challenge?.canvas_height"
@@ -99,14 +151,16 @@ async function reloadCaptcha() {
             @again="onAgain"
             @refresh="onFail"
           />
-          <div class="slider-label" :class="{ verified: sliderPosition !== null }">
+          <div class="slider-label" :class="{ verified: sliderPosition !== null || captchaTicket }">
             {{ captchaMessage }}
           </div>
         </div>
         <p v-if="authError" class="login-error">{{ authError }}</p>
         <button
           class="login-button"
-          :disabled="!isCaptchaReady || authenticating || sliderPosition === null"
+          :disabled="
+            !isCaptchaReady || authenticating || (sliderPosition === null && !captchaTicket)
+          "
         >
           {{ authenticating ? "身份校验中…" : "安全登录" }}
         </button>
@@ -245,6 +299,15 @@ async function reloadCaptcha() {
 }
 .slider-label.verified {
   color: #12856f;
+  font-weight: 700;
+}
+.commercial-captcha {
+  width: 100%;
+  padding: 12px;
+  color: #2268d8;
+  background: #edf4ff;
+  border: 1px solid #b9d2fb;
+  border-radius: 7px;
   font-weight: 700;
 }
 .login-error {

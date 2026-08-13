@@ -1,0 +1,356 @@
+<script setup lang="ts">
+import { computed, onMounted, ref } from "vue";
+import SlideVerify, { type SlideVerifyInstance } from "vue3-slide-verify";
+import "vue3-slide-verify/dist/style.css";
+
+import { useAuth } from "../stores/auth";
+
+const { challenge, authError, authenticating, refreshCaptcha, signIn } = useAuth();
+const username = ref("ops-admin");
+const password = ref("HotelOps@2026");
+const sliderPosition = ref<number | null>(null);
+const captchaTicket = ref("");
+const captchaRandstr = ref("");
+const captchaMessage = ref("请拖动拼图滑块完成验证");
+const block = ref<SlideVerifyInstance>();
+const isCaptchaReady = computed(() => Boolean(challenge.value));
+const isTencentCaptcha = computed(() => challenge.value?.provider === "tencent");
+
+onMounted(refreshCaptcha);
+
+async function submit() {
+  if (sliderPosition.value === null && !captchaTicket.value) {
+    captchaMessage.value = "请先完成拼图滑块验证";
+    return;
+  }
+  await signIn(
+    username.value,
+    password.value,
+    sliderPosition.value ?? undefined,
+    captchaTicket.value || undefined,
+    captchaRandstr.value || undefined,
+  ).catch(() => undefined);
+}
+
+async function openTencentCaptcha() {
+  if (!challenge.value?.app_id) return;
+  try {
+    captchaMessage.value = "正在打开腾讯云商业验证码…";
+    await loadTencentCaptchaScript();
+    const Captcha = window.TencentCaptcha;
+    if (!Captcha) throw new Error("腾讯云验证码脚本不可用");
+    const captcha = new Captcha(challenge.value.app_id, (result) => {
+      if (result.ret === 0) {
+        captchaTicket.value = result.ticket;
+        captchaRandstr.value = result.randstr;
+        captchaMessage.value = "腾讯云验证码验证通过";
+      } else {
+        captchaMessage.value = "验证已取消，请重新完成安全验证";
+      }
+    });
+    captcha.show();
+  } catch (error) {
+    captchaMessage.value = error instanceof Error ? error.message : "商业验证码加载失败";
+  }
+}
+
+function loadTencentCaptchaScript() {
+  if (window.TencentCaptcha) return Promise.resolve();
+  return new Promise<void>((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://ssl.captcha.qq.com/TCaptcha.js";
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("腾讯云验证码脚本加载失败"));
+    document.head.appendChild(script);
+  });
+}
+
+function onSuccess(detail: { timestamp: number; left: number }) {
+  sliderPosition.value = Math.round(detail.left);
+  captchaMessage.value = `验证通过，用时 ${(detail.timestamp / 1000).toFixed(1)} 秒`;
+}
+
+function onFail() {
+  sliderPosition.value = null;
+  captchaMessage.value = "拼图位置不匹配，请重新拖动";
+}
+
+function onAgain() {
+  sliderPosition.value = null;
+  captchaMessage.value = "检测到异常滑动轨迹，请重新验证";
+  block.value?.refresh();
+}
+
+async function reloadCaptcha() {
+  sliderPosition.value = null;
+  captchaTicket.value = "";
+  captchaRandstr.value = "";
+  captchaMessage.value = "请拖动拼图滑块完成验证";
+  await refreshCaptcha();
+  block.value?.refresh();
+}
+</script>
+
+<template>
+  <main class="login-page">
+    <section class="login-hero">
+      <div class="hero-brand"><span>H</span> Hotel Ops</div>
+      <p class="eyebrow">SECURE OPERATIONS PLATFORM</p>
+      <h1>酒店智能运营<br />Agent 平台</h1>
+      <p class="hero-copy">
+        统一管理经营任务、策略审批与受控执行。每一次决策均可追踪、可校验、可回读。
+      </p>
+      <div class="security-points">
+        <span>✓ 身份认证</span><span>✓ 权限校验</span><span>✓ 审批留痕</span>
+      </div>
+    </section>
+
+    <section class="login-panel">
+      <form class="login-card" @submit.prevent="submit">
+        <p class="eyebrow">WELCOME BACK</p>
+        <h2>登录运营平台</h2>
+        <p class="hint">请输入已分配的账号信息完成身份验证。</p>
+        <label
+          >账号<input
+            v-model.trim="username"
+            autocomplete="username"
+            placeholder="请输入账号"
+            required
+        /></label>
+        <label
+          >密码<input
+            v-model="password"
+            type="password"
+            autocomplete="current-password"
+            placeholder="请输入密码"
+            required
+        /></label>
+        <div class="captcha-block">
+          <div class="captcha-title">
+            <b>安全验证</b><button type="button" @click="reloadCaptcha">刷新</button>
+          </div>
+          <p>拖动滑块至缺口处，完成登录校验</p>
+          <button
+            v-if="isTencentCaptcha"
+            type="button"
+            class="commercial-captcha"
+            @click="openTencentCaptcha"
+          >
+            {{ captchaTicket ? "✓ 腾讯云验证码已通过" : "启动腾讯云滑块验证" }}
+          </button>
+          <SlideVerify
+            v-if="isCaptchaReady && !isTencentCaptcha"
+            ref="block"
+            :w="challenge?.canvas_width"
+            :h="challenge?.canvas_height"
+            :offset="challenge?.puzzle_offset"
+            :accuracy="4"
+            slider-text="向右拖动完成拼图验证"
+            @success="onSuccess"
+            @fail="onFail"
+            @again="onAgain"
+            @refresh="onFail"
+          />
+          <div class="slider-label" :class="{ verified: sliderPosition !== null || captchaTicket }">
+            {{ captchaMessage }}
+          </div>
+        </div>
+        <p v-if="authError" class="login-error">{{ authError }}</p>
+        <button
+          class="login-button"
+          :disabled="
+            !isCaptchaReady || authenticating || (sliderPosition === null && !captchaTicket)
+          "
+        >
+          {{ authenticating ? "身份校验中…" : "安全登录" }}
+        </button>
+        <p class="demo-note">本地演示账号：`ops-admin` / `HotelOps@2026`</p>
+      </form>
+    </section>
+  </main>
+</template>
+
+<style scoped>
+.login-page {
+  display: grid;
+  min-height: 100vh;
+  grid-template-columns: 1.05fr 0.95fr;
+  background: #f6f8fc;
+  color: #172744;
+}
+.login-hero {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  justify-content: center;
+  padding: 10vw;
+  color: #fff;
+  background: radial-gradient(circle at 76% 18%, #3e87ec 0, #173c83 34%, #0d1f43 76%);
+}
+.hero-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 92px;
+  font-size: 23px;
+  font-weight: 800;
+}
+.hero-brand span {
+  display: grid;
+  width: 35px;
+  height: 35px;
+  color: #123464;
+  background: #50d4c5;
+  border-radius: 10px;
+  place-items: center;
+}
+.eyebrow {
+  margin: 0 0 10px;
+  color: #3987ef;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.8px;
+}
+.login-hero .eyebrow {
+  color: #7ac6ff;
+}
+.login-hero h1 {
+  margin: 0;
+  font-size: 42px;
+  line-height: 1.23;
+}
+.hero-copy {
+  max-width: 485px;
+  margin: 22px 0 28px;
+  color: #bdcff1;
+  font-size: 15px;
+  line-height: 1.8;
+}
+.security-points {
+  display: flex;
+  gap: 20px;
+  color: #7ce1d7;
+  font-size: 13px;
+  font-weight: 700;
+}
+.login-panel {
+  display: grid;
+  padding: 32px;
+  place-items: center;
+}
+.login-card {
+  width: min(390px, 100%);
+}
+.login-card h2 {
+  margin: 0;
+  font-size: 29px;
+}
+.hint {
+  margin: 10px 0 28px;
+  color: #76849a;
+  font-size: 13px;
+}
+.login-card label {
+  display: grid;
+  gap: 8px;
+  margin: 15px 0;
+  color: #42516a;
+  font-size: 13px;
+  font-weight: 700;
+}
+.login-card input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 12px;
+  color: #1c2d49;
+  background: #fff;
+  border: 1px solid #dce4ef;
+  border-radius: 8px;
+  outline: none;
+}
+.login-card input:focus {
+  border-color: #3177e8;
+  box-shadow: 0 0 0 3px #3177e819;
+}
+.captcha-block {
+  padding: 14px;
+  margin: 20px 0;
+  background: #f7f9fd;
+  border: 1px solid #e5ebf4;
+  border-radius: 10px;
+}
+.captcha-title {
+  display: flex;
+  justify-content: space-between;
+  color: #35445e;
+  font-size: 13px;
+}
+.captcha-title button {
+  padding: 0;
+  color: #2871e5;
+  background: transparent;
+  border: 0;
+}
+.captcha-block p,
+.slider-label {
+  margin: 7px 0;
+  color: #8491a5;
+  font-size: 11px;
+}
+.slider-label.verified {
+  color: #12856f;
+  font-weight: 700;
+}
+.commercial-captcha {
+  width: 100%;
+  padding: 12px;
+  color: #2268d8;
+  background: #edf4ff;
+  border: 1px solid #b9d2fb;
+  border-radius: 7px;
+  font-weight: 700;
+}
+.login-error {
+  padding: 10px;
+  color: #b73947;
+  background: #fff0f1;
+  border-radius: 7px;
+  font-size: 12px;
+}
+.login-button {
+  width: 100%;
+  padding: 13px;
+  color: #fff;
+  background: #286fe2;
+  border: 0;
+  border-radius: 8px;
+  font-weight: 800;
+}
+.login-button:disabled {
+  opacity: 0.55;
+}
+.demo-note {
+  margin: 16px 0 0;
+  color: #8995a8;
+  font-size: 11px;
+  text-align: center;
+}
+@media (max-width: 800px) {
+  .login-page {
+    grid-template-columns: 1fr;
+  }
+  .login-hero {
+    min-height: auto;
+    padding: 45px 32px;
+  }
+  .hero-brand {
+    margin-bottom: 45px;
+  }
+  .login-hero h1 {
+    font-size: 31px;
+  }
+  .login-panel {
+    min-height: 620px;
+  }
+}
+</style>

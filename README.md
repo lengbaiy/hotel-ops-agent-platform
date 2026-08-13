@@ -22,6 +22,8 @@ docker compose up --build
 
 打开 `http://localhost:5173`，API 文档为 `http://localhost:8000/docs`。
 
+完整的 Docker 安装、启动、验收和故障排查见 [docs/DOCKER_STARTUP_GUIDE.md](docs/DOCKER_STARTUP_GUIDE.md)。
+
 ### 本地开发
 
 ```bash
@@ -37,6 +39,8 @@ cd frontend
 npm install
 npm run dev
 ```
+
+本地项目的端口选择、启动、验收及停止服务说明见 [docs/LOCAL_STARTUP_GUIDE.md](docs/LOCAL_STARTUP_GUIDE.md)。
 
 ## 实施路径
 
@@ -85,3 +89,9 @@ docker/      本地容器配置
 完整的总体架构、Agent 闭环、三端策略、工程分层和研发流程见 [docs/PROJECT_FRAMEWORK.md](docs/PROJECT_FRAMEWORK.md)。
 
 企业分支、测试与发布流程见 [docs/BRANCHING_STRATEGY.md](docs/BRANCHING_STRATEGY.md)。
+
+本地/Docker 启动及企业开发就绪度校验见 [docs/LOCAL_STARTUP_GUIDE.md](docs/LOCAL_STARTUP_GUIDE.md)、[docs/DOCKER_STARTUP_GUIDE.md](docs/DOCKER_STARTUP_GUIDE.md) 和 [docs/ENTERPRISE_READINESS_ASSESSMENT.md](docs/ENTERPRISE_READINESS_ASSESSMENT.md)。
+
+登录、滑块验证、JWT 会话和角色权限见 [docs/AUTHENTICATION_GUIDE.md](docs/AUTHENTICATION_GUIDE.md)。
+
+腾讯云商业滑块验证码配置见 [docs/COMMERCIAL_CAPTCHA_CONFIGURATION.md](docs/COMMERCIAL_CAPTCHA_CONFIGURATION.md)。

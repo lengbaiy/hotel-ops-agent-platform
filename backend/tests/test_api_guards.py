@@ -42,6 +42,7 @@ def test_jwt_enforces_role_tenant_and_property_scope(monkeypatch) -> None:
     token = jwt.encode(
         {
             "sub": "operator-001",
+            "jti": "legacy-auth-test-token",
             "aud": "hotel-ops-api",
             "tenant_id": "tenant-a",
             "property_ids": ["hotel-a"],

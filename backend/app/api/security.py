@@ -9,6 +9,7 @@ from app.core import settings
 from app.domain import OpsTask, TaskCreate
 
 bearer_scheme = HTTPBearer(auto_error=False)
+revoked_token_ids: set[str] = set()
 
 
 @dataclass(frozen=True)
@@ -17,6 +18,7 @@ class Actor:
     tenant_id: str | None
     property_ids: frozenset[str]
     roles: frozenset[str]
+    token_id: str | None = None
 
     def can_access_property(self, property_id: str) -> bool:
         return "*" in self.property_ids or property_id in self.property_ids
@@ -55,6 +57,7 @@ def get_current_actor(
     tenant_id = claims.get("tenant_id")
     property_ids = claims.get("property_ids", [])
     roles = claims.get("roles", [])
+    token_id = claims.get("jti")
     if not isinstance(subject, str) or not isinstance(tenant_id, str):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -69,7 +72,17 @@ def get_current_actor(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="token scopes are invalid",
         )
-    return Actor(subject, tenant_id, frozenset(property_ids), frozenset(roles))
+    if not isinstance(token_id, str) or token_id in revoked_token_ids:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="session is no longer active",
+        )
+    return Actor(subject, tenant_id, frozenset(property_ids), frozenset(roles), token_id)
+
+
+def revoke_token(actor: Actor) -> None:
+    if actor.token_id:
+        revoked_token_ids.add(actor.token_id)
 
 
 def require_roles(*required_roles: str) -> Callable[[Actor], Actor]:

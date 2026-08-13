@@ -35,7 +35,10 @@ type TaskList = { items: OpsTask[]; total: number };
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`/api/v2${path}`, {
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}),
+    },
     ...options,
   });
   if (!response.ok) throw new Error(`请求失败：${response.status}`);
@@ -63,3 +66,4 @@ export function createRevenueTask(propertyId: string) {
     }),
   });
 }
+import { getAccessToken } from "../stores/auth";

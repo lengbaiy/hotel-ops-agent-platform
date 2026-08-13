@@ -10,7 +10,7 @@ class Settings:
     redis_url: str = getenv("REDIS_URL", "redis://localhost:6379/0")
     qdrant_url: str = getenv("QDRANT_URL", "http://localhost:6333")
     object_storage_endpoint: str = getenv("MINIO_ENDPOINT", "localhost:9000")
-    auth_mode: str = getenv("AUTH_MODE", "disabled")
+    auth_mode: str = getenv("AUTH_MODE", "jwt")
     jwt_secret: str = getenv("JWT_SECRET", "local-development-secret-change-before-production")
     jwt_audience: str = getenv("JWT_AUDIENCE", "hotel-ops-api")
     cors_origins: tuple[str, ...] = tuple(
@@ -20,6 +20,8 @@ class Settings:
         )
         if origin.strip()
     )
+    jwt_expire_minutes: int = int(getenv("JWT_EXPIRE_MINUTES", "30"))
+    captcha_expire_seconds: int = int(getenv("CAPTCHA_EXPIRE_SECONDS", "120"))
 
 
 settings = Settings()

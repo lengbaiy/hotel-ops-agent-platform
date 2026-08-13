@@ -91,3 +91,5 @@ docker/      本地容器配置
 企业分支、测试与发布流程见 [docs/BRANCHING_STRATEGY.md](docs/BRANCHING_STRATEGY.md)。
 
 本地/Docker 启动及企业开发就绪度校验见 [docs/LOCAL_STARTUP_GUIDE.md](docs/LOCAL_STARTUP_GUIDE.md)、[docs/DOCKER_STARTUP_GUIDE.md](docs/DOCKER_STARTUP_GUIDE.md) 和 [docs/ENTERPRISE_READINESS_ASSESSMENT.md](docs/ENTERPRISE_READINESS_ASSESSMENT.md)。
+
+登录、滑块验证、JWT 会话和角色权限见 [docs/AUTHENTICATION_GUIDE.md](docs/AUTHENTICATION_GUIDE.md)。

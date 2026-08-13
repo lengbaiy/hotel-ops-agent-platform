@@ -6,6 +6,113 @@
     "version": "0.3.0"
   },
   "paths": {
+    "/api/v2/auth/captcha": {
+      "post": {
+        "tags": [
+          "�����֤"
+        ],
+        "summary": "������¼������ս",
+        "operationId": "create_captcha_api_v2_auth_captcha_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaptchaChallenge"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/auth/login": {
+      "post": {
+        "tags": [
+          "�����֤"
+        ],
+        "summary": "У�黬�鲢������¼�Ự",
+        "operationId": "login_api_v2_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/auth/me": {
+      "get": {
+        "tags": [
+          "�����֤"
+        ],
+        "summary": "��ȡ��ǰ��¼���",
+        "operationId": "me_api_v2_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfile"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/auth/logout": {
+      "post": {
+        "tags": [
+          "�����֤"
+        ],
+        "summary": "ע����ǰ��¼�Ự",
+        "operationId": "logout_api_v2_auth_logout_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v2/platform/capabilities": {
       "get": {
         "tags": [
@@ -881,6 +988,39 @@
   },
   "components": {
     "schemas": {
+      "CaptchaChallenge": {
+        "properties": {
+          "captcha_id": {
+            "type": "string",
+            "title": "Captcha Id"
+          },
+          "track_length": {
+            "type": "integer",
+            "title": "Track Length"
+          },
+          "target_position": {
+            "type": "integer",
+            "title": "Target Position"
+          },
+          "tolerance": {
+            "type": "integer",
+            "title": "Tolerance"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In"
+          }
+        },
+        "type": "object",
+        "required": [
+          "captcha_id",
+          "track_length",
+          "target_position",
+          "tolerance",
+          "expires_in"
+        ],
+        "title": "CaptchaChallenge"
+      },
       "DashboardOverview": {
         "properties": {
           "property_id": {
@@ -933,6 +1073,41 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "LoginRequest": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 3,
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Password"
+          },
+          "captcha_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Captcha Id"
+          },
+          "slider_position": {
+            "type": "integer",
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "Slider Position"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password",
+          "captcha_id",
+          "slider_position"
+        ],
+        "title": "LoginRequest"
       },
       "MetricCard": {
         "properties": {
@@ -1143,6 +1318,33 @@
         ],
         "title": "Recommendation"
       },
+      "SessionResponse": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserProfile"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "expires_in",
+          "user"
+        ],
+        "title": "SessionResponse"
+      },
       "TaskCreate": {
         "properties": {
           "tenant_id": {
@@ -1237,6 +1439,45 @@
         ],
         "title": "TaskType"
       },
+      "UserProfile": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "property_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Property Ids"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Roles"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "display_name",
+          "tenant_id",
+          "property_ids",
+          "roles"
+        ],
+        "title": "UserProfile"
+      },
       "ValidationError": {
         "properties": {
           "loc": {
@@ -1293,6 +1534,10 @@
     {
       "name": "��Ӫ����",
       "description": "����״̬��ת���������ܿ�ִ�С�"
+    },
+    {
+      "name": "�����֤",
+      "description": "������ս����¼�Ự�뵱ǰ��ݡ�"
     },
     {
       "name": "platform",

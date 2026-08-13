@@ -10,6 +10,8 @@
 
 本次使用 `5179` 和 `8006`，以避免占用其他项目正在使用的 `5173` 和 `8000`。
 
+本地启动默认启用 JWT 登录。进入平台后使用 `ops-admin` / `HotelOps@2026` 完成滑块验证；详情见 [AUTHENTICATION_GUIDE.md](AUTHENTICATION_GUIDE.md)。
+
 ## 前置条件
 
 - Python 3.11 或更高版本。
@@ -70,4 +72,3 @@ Stop-Process -Id <进程ID>
 ```
 
 不要停止不属于本项目的端口进程。若 `5179` 或 `8006` 已被占用，可替换为其他空闲端口，但前端的 `VITE_API_PROXY_TARGET` 必须与 API 端口一致。
-

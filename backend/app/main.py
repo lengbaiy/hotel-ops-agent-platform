@@ -17,6 +17,7 @@ app = FastAPI(
     openapi_tags=[
         {"name": "经营驾驶舱", "description": "经营概览、指标和告警。"},
         {"name": "经营任务", "description": "任务状态流转、审批和受控执行。"},
+        {"name": "身份认证", "description": "滑块挑战、登录会话与当前身份。"},
         {"name": "platform", "description": "平台能力和模块契约。"},
     ],
 )

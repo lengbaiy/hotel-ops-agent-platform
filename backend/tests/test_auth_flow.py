@@ -24,23 +24,25 @@ def _enable_jwt(monkeypatch) -> None:
     auth.auth_service.captchas.clear()
 
 
-def _captcha(client: TestClient) -> dict[str, int | str]:
+def _captcha(client: TestClient) -> tuple[dict[str, int | str], int]:
     response = client.post("/api/v2/auth/captcha")
     assert response.status_code == 200
-    return response.json()
+    payload = response.json()
+    target_position, _ = auth.auth_service.captchas[payload["captcha_id"]]
+    return payload, target_position
 
 
 def test_login_requires_a_valid_one_time_slider_challenge(monkeypatch) -> None:
     _enable_jwt(monkeypatch)
     client = TestClient(app)
-    challenge = _captcha(client)
+    challenge, target_position = _captcha(client)
     invalid = client.post(
         "/api/v2/auth/login",
         json={
             "username": "ops-admin",
             "password": "HotelOps@2026",
             "captcha_id": challenge["captcha_id"],
-            "slider_position": int(challenge["target_position"]) + int(challenge["tolerance"]) + 1,
+            "slider_position": target_position + 5,
         },
     )
     assert invalid.status_code == 401
@@ -51,7 +53,7 @@ def test_login_requires_a_valid_one_time_slider_challenge(monkeypatch) -> None:
             "username": "ops-admin",
             "password": "HotelOps@2026",
             "captcha_id": challenge["captcha_id"],
-            "slider_position": challenge["target_position"],
+            "slider_position": target_position,
         },
     )
     assert reused.status_code == 401
@@ -60,14 +62,14 @@ def test_login_requires_a_valid_one_time_slider_challenge(monkeypatch) -> None:
 def test_login_me_role_enforcement_and_logout(monkeypatch) -> None:
     _enable_jwt(monkeypatch)
     client = TestClient(app)
-    challenge = _captcha(client)
+    challenge, target_position = _captcha(client)
     login = client.post(
         "/api/v2/auth/login",
         json={
             "username": "ops-viewer",
             "password": "HotelOps@2026",
             "captcha_id": challenge["captcha_id"],
-            "slider_position": challenge["target_position"],
+            "slider_position": target_position,
         },
     )
     assert login.status_code == 200

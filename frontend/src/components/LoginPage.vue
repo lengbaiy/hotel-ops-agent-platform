@@ -1,18 +1,49 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import SlideVerify, { type SlideVerifyInstance } from "vue3-slide-verify";
+import "vue3-slide-verify/dist/style.css";
 
 import { useAuth } from "../stores/auth";
 
 const { challenge, authError, authenticating, refreshCaptcha, signIn } = useAuth();
 const username = ref("ops-admin");
 const password = ref("HotelOps@2026");
-const sliderPosition = ref(0);
+const sliderPosition = ref<number | null>(null);
+const captchaMessage = ref("请拖动拼图滑块完成验证");
+const block = ref<SlideVerifyInstance>();
 const isCaptchaReady = computed(() => Boolean(challenge.value));
 
 onMounted(refreshCaptcha);
 
 async function submit() {
+  if (sliderPosition.value === null) {
+    captchaMessage.value = "请先完成拼图滑块验证";
+    return;
+  }
   await signIn(username.value, password.value, sliderPosition.value).catch(() => undefined);
+}
+
+function onSuccess(detail: { timestamp: number; left: number }) {
+  sliderPosition.value = Math.round(detail.left);
+  captchaMessage.value = `验证通过，用时 ${(detail.timestamp / 1000).toFixed(1)} 秒`;
+}
+
+function onFail() {
+  sliderPosition.value = null;
+  captchaMessage.value = "拼图位置不匹配，请重新拖动";
+}
+
+function onAgain() {
+  sliderPosition.value = null;
+  captchaMessage.value = "检测到异常滑动轨迹，请重新验证";
+  block.value?.refresh();
+}
+
+async function reloadCaptcha() {
+  sliderPosition.value = null;
+  captchaMessage.value = "请拖动拼图滑块完成验证";
+  await refreshCaptcha();
+  block.value?.refresh();
 }
 </script>
 
@@ -52,28 +83,31 @@ async function submit() {
         /></label>
         <div class="captcha-block">
           <div class="captcha-title">
-            <b>安全验证</b><button type="button" @click="refreshCaptcha">刷新</button>
+            <b>安全验证</b><button type="button" @click="reloadCaptcha">刷新</button>
           </div>
           <p>拖动滑块至缺口处，完成登录校验</p>
-          <div class="captcha-scene" :class="{ ready: isCaptchaReady }">
-            <span class="captcha-pattern"></span
-            ><i :style="{ left: `${challenge?.target_position ?? 0}%` }"></i>
-          </div>
-          <input
-            v-model.number="sliderPosition"
-            class="slider"
-            type="range"
-            min="0"
-            max="100"
-            :disabled="!isCaptchaReady || authenticating"
-            aria-label="登录滑块验证"
+          <SlideVerify
+            v-if="isCaptchaReady"
+            ref="block"
+            :w="challenge?.canvas_width"
+            :h="challenge?.canvas_height"
+            :offset="challenge?.puzzle_offset"
+            :accuracy="4"
+            slider-text="向右拖动完成拼图验证"
+            @success="onSuccess"
+            @fail="onFail"
+            @again="onAgain"
+            @refresh="onFail"
           />
-          <div class="slider-label">
-            {{ sliderPosition ? `当前验证位置：${sliderPosition}%` : "请拖动滑块完成验证" }}
+          <div class="slider-label" :class="{ verified: sliderPosition !== null }">
+            {{ captchaMessage }}
           </div>
         </div>
         <p v-if="authError" class="login-error">{{ authError }}</p>
-        <button class="login-button" :disabled="!isCaptchaReady || authenticating">
+        <button
+          class="login-button"
+          :disabled="!isCaptchaReady || authenticating || sliderPosition === null"
+        >
           {{ authenticating ? "身份校验中…" : "安全登录" }}
         </button>
         <p class="demo-note">本地演示账号：`ops-admin` / `HotelOps@2026`</p>
@@ -209,30 +243,9 @@ async function submit() {
   color: #8491a5;
   font-size: 11px;
 }
-.captcha-scene {
-  position: relative;
-  height: 60px;
-  overflow: hidden;
-  background: linear-gradient(135deg, #dde9fa, #eff5ff);
-  border-radius: 7px;
-}
-.captcha-pattern {
-  position: absolute;
-  inset: 0;
-  opacity: 0.55;
-  background: repeating-linear-gradient(45deg, transparent 0 10px, #bfd3f4 10px 12px);
-}
-.captcha-scene i {
-  position: absolute;
-  top: 16px;
-  width: 26px;
-  height: 26px;
-  border: 2px dashed #286fe2;
-  border-radius: 6px;
-  transform: translateX(-50%);
-}
-.slider {
-  accent-color: #2e74e7;
+.slider-label.verified {
+  color: #12856f;
+  font-weight: 700;
 }
 .login-error {
   padding: 10px;

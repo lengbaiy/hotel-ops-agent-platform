@@ -35,7 +35,7 @@ class AuthService:
 
     def create_captcha(self) -> dict[str, int | str]:
         captcha_id = token_urlsafe(24)
-        target_position = 22 + randbelow(57)
+        target_position = 68 + randbelow(210)
         self.captchas[captcha_id] = (
             target_position,
             datetime.now(UTC) + timedelta(seconds=settings.captcha_expire_seconds),
@@ -43,8 +43,9 @@ class AuthService:
         return {
             "captcha_id": captcha_id,
             "track_length": 100,
-            "target_position": target_position,
-            "tolerance": 4,
+            "canvas_width": 350,
+            "canvas_height": 150,
+            "puzzle_offset": target_position,
             "expires_in": settings.captcha_expire_seconds,
         }
 

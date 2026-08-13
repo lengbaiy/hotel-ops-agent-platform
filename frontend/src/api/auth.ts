@@ -1,8 +1,9 @@
 export type CaptchaChallenge = {
   captcha_id: string;
   track_length: number;
-  target_position: number;
-  tolerance: number;
+  canvas_width: number;
+  canvas_height: number;
+  puzzle_offset: number;
   expires_in: number;
 };
 

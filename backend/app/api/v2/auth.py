@@ -12,8 +12,9 @@ router = APIRouter(prefix="/auth", tags=["身份认证"])
 class CaptchaChallenge(BaseModel):
     captcha_id: str
     track_length: int
-    target_position: int
-    tolerance: int
+    canvas_width: int
+    canvas_height: int
+    puzzle_offset: int
     expires_in: int
 
 

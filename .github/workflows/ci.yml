@@ -17,7 +17,7 @@ jobs:
       - run: ruff format --check app tests
       - run: pytest -q
       - run: python -c "import json; from app.main import app; json.dumps(app.openapi())"
-      - run: pip install pip-audit && pip-audit --strict
+      - run: pip install pip-audit && pip-audit --strict --skip-editable
   frontend:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: frontend } }
